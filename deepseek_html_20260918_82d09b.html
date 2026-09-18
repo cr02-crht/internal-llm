@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Internal AI Capability — CrescentRating &amp; HalalTrip</title>
+<style>
+  /* ============================================================
+     THEME
+     Primary  : #1502cd (blue)  /  #ffffff (white)
+     Accent   : #fab805
+     Card on blue  : #0f3399
+     Card on white : #f2f2f2
+     ============================================================ */
+
+  :root{
+    --blue:#1502cd;
+    --blue-deep:#0f3399;
+    --white:#ffffff;
+    --accent:#fab805;
+    --accent-soft:#ffd257;
+    --radius:18px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+
+  body{
+    background:var(--blue);
+    font-family:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    color:#fff;
+  }
+
+  /* ---------- per-slide theme tokens ---------- */
+  .slide.dark{
+    --bg:var(--blue);
+    --fg:#ffffff;
+    --muted:rgba(255,255,255,.72);
+    --card:var(--blue-deep);
+    --card-border:rgba(255,255,255,.15);
+    --track:rgba(255,255,255,.12);
+    --tick:rgba(255,255,255,.09);
+    --num:var(--accent);
+    --hair:rgba(255,255,255,.16);
+    --hl-bg:rgba(250,184,5,.14);
+    --hl-border:rgba(250,184,5,.55);
+    --hl-text:var(--accent);
+    --chip-bg:rgba(255,255,255,.09);
+    --chip-border:rgba(255,255,255,.22);
+    --bar-cost:linear-gradient(180deg,#fab805,#ffd257);
+    --bar-effort:linear-gradient(180deg,#8fa2ff,#3b46d6);
+    --bar-risk:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,.22));
+    --sw-cost:#fab805;
+    --sw-effort:#6f7fff;
+    --sw-risk:rgba(255,255,255,.45);
+  }
+
+  .slide.light{
+    --bg:#ffffff;
+    --fg:var(--blue);
+    --muted:rgba(21,2,205,.66);
+    --card:#f2f2f2;
+    --card-border:rgba(21,2,205,.10);
+    --track:rgba(21,2,205,.09);
+    --tick:rgba(21,2,205,.07);
+    --num:var(--blue);
+    --hair:rgba(21,2,205,.14);
+    --hl-bg:rgba(250,184,5,.20);
+    --hl-border:rgba(250,184,5,.85);
+    --hl-text:var(--blue);
+    --chip-bg:#f2f2f2;
+    --chip-border:rgba(21,2,205,.14);
+    --bar-cost:linear-gradient(180deg,#fab805,#ffd257);
+    --bar-effort:linear-gradient(180deg,#1502cd,#6a5cff);
+    --bar-risk:linear-gradient(180deg,rgba(21,2,205,.42),rgba(21,2,205,.13));
+    --sw-cost:#fab805;
+    --sw-effort:#1502cd;
+    --sw-risk:rgba(21,2,205,.30);
+  }
+
+  /* ---------- progress ---------- */
+  .progress{
+    position:fixed; top:0; left:0; right:0; height:4px; z-index:60;
+    background:rgba(128,128,128,.18);
+  }
+  .progress span{
+    display:block; height:100%; width:0;
+    background:var(--accent);
+    box-shadow:0 0 16px rgba(250,184,5,.7);
+    transition:width .45s cubic-bezier(.2,.7,.3,1);
+  }
+
+  /* ---------- deck ---------- */
+  .deck{position:fixed; inset:0; z-index:1}
+
+  .slide{
+    position:absolute; inset:0;
+    background:var(--bg);
+    color:var(--fg);
+    overflow-y:auto; overflow-x:hidden;
+    opacity:0; visibility:hidden;
+    transform:translateY(22px);
+    transition:opacity .5s ease, transform .5s cubic-bezier(.2,.7,.3,1), visibility .5s;
+    scrollbar-width:thin;
+  }
+  .slide::-webkit-scrollbar{width:8px}
+  .slide::-webkit-scrollbar-thumb{background:var(--hair); border-radius:99px}
+
+  /* faint grid texture inside each slide */
+  .slide::before{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(var(--tick) 1px, transparent 1px),
+      linear-gradient(90deg, var(--tick) 1px, transparent 1px);
+    background-size:76px 76px;
+    -webkit-mask-image:radial-gradient(circle at 50% 38%, #000 0%, transparent 82%);
+    mask-image:radial-gradient(circle at 50% 38%, #000 0%, transparent 82%);
+  }
+  /* accent glow on dark slides only */
+  .slide.dark::after{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(720px 520px at 92% -8%, rgba(250,184,5,.16), transparent 62%),
+      radial-gradient(660px 520px at -6% 108%, rgba(255,255,255,.12), transparent 60%);
+  }
+
+  .slide.active{opacity:1; visibility:visible; transform:none}
+
+  .slide-inner{
+    position:relative; z-index:1;
+    min-height:100%;
+    max-width:1280px;
+    margin:0 auto;
+    padding:clamp(56px,7vh,86px) clamp(22px,5.5vw,84px) clamp(88px,11vh,116px);
+    display:flex; flex-direction:column; justify-content:center;
+    gap:clamp(16px,2.6vh,30px);
+  }
+
+  /* ---------- typography ---------- */
+  .kicker{
+    display:inline-flex; align-items:center; gap:10px;
+    font-size:clamp(11px,1.05vw,13px);
+    letter-spacing:.18em; text-transform:uppercase;
+    font-weight:800; color:var(--accent);
+  }
+  .slide.light .kicker{color:var(--blue)}
+  .kicker::before{
+    content:""; width:28px; height:3px; border-radius:3px;
+    background:var(--accent);
+  }
+
+  h2.title{
+    font-size:clamp(26px,3.5vw,46px);
+    font-weight:850; letter-spacing:-.025em; line-height:1.06;
+  }
+
+  .subtitle{
+    font-size:clamp(15px,1.7vw,21px);
+    color:var(--muted); line-height:1.5; max-width:66ch;
+  }
+
+  .accent{color:var(--accent)}
+  .slide.light .accent{color:var(--blue)}
+
+  .s-head{display:flex; flex-direction:column; gap:10px}
+
+  /* ---------- entry animation ---------- */
+  .anim{opacity:0}
+  .slide.active .anim{
+    animation:rise .6s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay:var(--d,0s);
+  }
+  @keyframes rise{
+    from{opacity:0; transform:translateY(18px)}
+    to{opacity:1; transform:none}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .anim{opacity:1}
+    .slide.active .anim{animation:none}
+    .slide{transition:none}
+  }
+
+  /* ---------- grids ---------- */
+  .grid{display:grid; gap:clamp(12px,1.6vw,20px)}
+  .g-2{grid-template-columns:repeat(2,1fr)}
+  .g-3{grid-template-columns:repeat(3,1fr)}
+  .g-4{grid-template-columns:repeat(4,1fr)}
+
+  /* ---------- card ---------- */
+  .card{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    padding:clamp(15px,2.2vh,24px) clamp(15px,1.6vw,24px);
+    overflow:hidden;
+  }
+  .card::after{
+    content:""; position:absolute; inset:0 0 auto 0; height:3px;
+    background:var(--accent);
+  }
+  .card h3{
+    font-size:clamp(14px,1.35vw,18px); font-weight:750;
+    letter-spacing:-.01em; margin-bottom:8px;
+  }
+  .card p{
+    font-size:clamp(12.5px,1.15vw,15px);
+    color:var(--muted); line-height:1.55;
+  }
+  .card p b{color:var(--fg)}
+  .card.hl{background:var(--hl-bg); border-color:var(--hl-border)}
+  .card.hl p{color:var(--fg)}
+
+  .tag{
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:4px 10px; border-radius:99px;
+    background:var(--accent); color:var(--blue);
+    margin-bottom:11px;
+  }
+
+  /* ---------- stat ---------- */
+  .stat .num{
+    font-size:clamp(24px,3.2vw,42px); font-weight:850;
+    letter-spacing:-.035em; line-height:1; margin-bottom:10px;
+    font-variant-numeric:tabular-nums;
+    color:var(--num);
+  }
+  .stat .num small{font-size:.48em; font-weight:700; letter-spacing:0}
+
+  /* ============================================================
+     RANGE BARS
+     ============================================================ */
+  .ranges{display:flex; flex-direction:column; gap:clamp(12px,2vh,18px)}
+
+  .range-row{
+    display:grid; align-items:center;
+    gap:clamp(10px,1.6vw,22px);
+    grid-template-columns:minmax(148px,1.02fr) 2.5fr minmax(112px,auto);
+  }
+
+  .range-name{
+    font-size:clamp(12.5px,1.2vw,15px); font-weight:700; line-height:1.3;
+  }
+  .range-name small{
+    display:block; font-weight:500; color:var(--muted);
+    font-size:.84em; margin-top:3px;
+  }
+
+  .range-track{
+    position:relative;
+    height:34px;
+    border-radius:10px;
+    background:var(--track);
+    border:1px solid var(--card-border);
+    overflow:hidden;
+  }
+  .range-track::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background-image:repeating-linear-gradient(
+      90deg,
+      var(--tick) 0 1px,
+      transparent 1px 16.6667%
+    );
+  }
+
+  .range-fill{
+    position:absolute; top:0; bottom:0;
+    left:var(--a);
+    right:calc(100% - var(--b));
+    border-radius:10px;
+    background:linear-gradient(90deg, var(--accent), var(--accent-soft));
+    box-shadow:
+      0 0 0 1px rgba(250,184,5,.45),
+      0 8px 22px rgba(250,184,5,.30);
+  }
+  .range-fill::before,
+  .range-fill::after{
+    content:""; position:absolute; top:50%; transform:translateY(-50%);
+    width:3px; height:56%; border-radius:2px;
+    background:rgba(21,2,205,.55);
+  }
+  .range-fill::before{left:7px}
+  .range-fill::after{right:7px}
+
+  .range-val{
+    font-size:clamp(12.5px,1.25vw,16px);
+    font-weight:850; text-align:right;
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+    color:var(--accent);
+  }
+  .slide.light .range-val{color:var(--blue)}
+
+  .range-axis{padding-top:0}
+  .axis{
+    display:flex; justify-content:space-between;
+    font-size:11px; font-weight:800; letter-spacing:.07em;
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- rows / comparison ---------- */
+  .rows{display:flex; flex-direction:column; gap:10px}
+  .row{
+    display:grid; grid-template-columns:1.6fr auto; align-items:center; gap:14px;
+    padding:clamp(11px,1.5vh,17px) clamp(14px,1.6vw,22px);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    background:var(--card);
+  }
+  .row .rlabel{font-size:clamp(13px,1.25vw,16px); font-weight:700}
+  .row .rlabel small{
+    display:block; font-weight:500; color:var(--muted);
+    font-size:12px; margin-top:3px;
+  }
+  .row .rval{
+    font-size:clamp(14px,1.5vw,20px); font-weight:850;
+    letter-spacing:-.02em; font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .row.hl{
+    background:var(--hl-bg);
+    border-color:var(--hl-border);
+  }
+  .row.hl .rval{color:var(--hl-text)}
+
+  /* ---------- quote ---------- */
+  .quote{
+    position:relative;
+    padding-left:clamp(16px,2vw,28px);
+    border-left:4px solid var(--accent);
+    font-size:clamp(19px,2.7vw,36px);
+    font-weight:850; letter-spacing:-.03em; line-height:1.16;
+    max-width:30ch;
+  }
+
+  /* ---------- tiers ---------- */
+  .tier{
+    display:flex; gap:clamp(12px,1.6vw,20px); align-items:flex-start;
+    padding:clamp(14px,2vh,22px) clamp(15px,1.7vw,24px);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    background:var(--card);
+  }
+  .tier .n{
+    flex:none; width:36px; height:36px; border-radius:11px;
+    display:grid; place-items:center; font-weight:850; font-size:15px;
+    background:var(--accent); color:var(--blue);
+  }
+  .tier .t-body{flex:1; min-width:0}
+  .tier h3{font-size:clamp(13.5px,1.3vw,17px); font-weight:750; margin-bottom:5px}
+  .tier p{
+    font-size:clamp(12.5px,1.15vw,14.5px);
+    color:var(--muted); line-height:1.5;
+  }
+  .tier p b{color:var(--fg)}
+  .tier .price{
+    flex:none; font-weight:850; font-size:clamp(12.5px,1.2vw,15px);
+    white-space:nowrap; font-variant-numeric:tabular-nums;
+    padding:6px 13px; border-radius:99px;
+    background:var(--accent); color:var(--blue);
+  }
+
+  /* ---------- checklist ---------- */
+  .check{display:flex; flex-direction:column; gap:clamp(10px,1.5vh,15px)}
+  .check li{
+    list-style:none; display:flex; gap:14px; align-items:flex-start;
+    font-size:clamp(13px,1.3vw,16.5px); line-height:1.5;
+  }
+  .check .ico{
+    flex:none; width:26px; height:26px; border-radius:8px; margin-top:1px;
+    display:grid; place-items:center; font-size:13px; font-weight:850;
+    background:var(--accent); color:var(--blue);
+  }
+  .check b{font-weight:800}
+  .check .ico.soft{background:var(--chip-bg); color:var(--fg); border:1px solid var(--chip-border)}
+
+  /* ---------- tables ---------- */
+  .table-wrap{
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    overflow:hidden;
+    background:var(--card);
+  }
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table{width:100%; border-collapse:collapse; font-size:clamp(12px,1.12vw,14.5px)}
+  thead th{
+    text-align:left; white-space:nowrap;
+    padding:clamp(10px,1.5vh,15px) clamp(10px,1.2vw,18px);
+    font-size:10.5px; letter-spacing:.11em; text-transform:uppercase;
+    font-weight:850; color:var(--muted);
+    background:var(--track);
+    border-bottom:1px solid var(--card-border);
+  }
+  tbody td{
+    padding:clamp(10px,1.5vh,15px) clamp(10px,1.2vw,18px);
+    border-top:1px solid var(--card-border);
+    font-variant-numeric:tabular-nums;
+    color:var(--muted); line-height:1.4;
+  }
+  tbody td:first-child{font-weight:800; color:var(--fg)}
+  tbody tr:first-child td{border-top:none}
+  th.ta-r, td.ta-r{text-align:right}
+  tbody tr.hl{background:var(--hl-bg)}
+  tbody tr.hl td{color:var(--hl-text)}
+  tbody tr.hl td:first-child{color:var(--fg)}
+  .yes{color:var(--accent); font-weight:850}
+  .slide.light .yes{color:var(--blue)}
+  .no{font-weight:750; opacity:.65}
+
+  /* ---------- bar chart ---------- */
+  .chart-wrap{display:flex; flex-direction:column}
+  .chart{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:clamp(10px,2vw,34px);
+    height:clamp(190px,31vh,300px);
+    padding:26px clamp(4px,1.2vw,22px) 0;
+    border-bottom:2px solid var(--hair);
+  }
+  .chart-group{
+    flex:1; height:100%;
+    display:flex; align-items:flex-end; justify-content:center;
+    gap:clamp(5px,.9vw,13px);
+  }
+  .bar{
+    position:relative; flex:1; max-width:62px; min-height:5px;
+    height:calc(var(--v) * 10%);
+    border-radius:9px 9px 0 0;
+    box-shadow:0 6px 18px rgba(0,0,0,.10);
+  }
+  .bar.cost{background:var(--bar-cost)}
+  .bar.effort{background:var(--bar-effort)}
+  .bar.risk{background:var(--bar-risk)}
+  .bar span{
+    position:absolute; top:-20px; left:50%; transform:translateX(-50%);
+    font-size:11.5px; font-weight:850; color:var(--fg); opacity:.9;
+    font-variant-numeric:tabular-nums;
+  }
+  .chart-labels{
+    display:flex; justify-content:space-between;
+    gap:clamp(10px,2vw,34px);
+    padding:12px clamp(4px,1.2vw,22px) 0;
+  }
+  .chart-labels span{
+    flex:1; text-align:center;
+    font-size:clamp(11.5px,1.1vw,13.5px); font-weight:800;
+    letter-spacing:.01em; line-height:1.25;
+  }
+  .legend{
+    display:flex; flex-wrap:wrap; justify-content:center;
+    gap:clamp(12px,2.4vw,26px); margin-top:clamp(10px,1.6vh,18px);
+  }
+  .legend span{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:11px; font-weight:850; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .legend i{width:14px; height:14px; border-radius:5px; display:block}
+  .legend i.c{background:var(--sw-cost)}
+  .legend i.e{background:var(--sw-effort)}
+  .legend i.r{background:var(--sw-risk)}
+
+  /* ---------- Q&A ---------- */
+  .qa-list{display:flex; flex-direction:column; gap:clamp(10px,1.5vh,15px)}
+  .qa{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:6px;
+    padding:clamp(13px,1.9vh,20px) clamp(15px,1.7vw,24px);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    background:var(--card);
+  }
+  .qa .q{
+    display:flex; gap:12px; align-items:flex-start;
+    font-size:clamp(13px,1.3vw,16.5px); font-weight:800; line-height:1.4;
+  }
+  .qa .q .n{
+    flex:none; width:26px; height:26px; border-radius:8px;
+    display:grid; place-items:center; font-size:12.5px; font-weight:850;
+    background:var(--accent); color:var(--blue);
+  }
+  .qa .a{
+    font-size:clamp(12.5px,1.18vw,15px);
+    color:var(--muted); line-height:1.55;
+    padding-left:38px;
+  }
+  .qa .a b{color:var(--fg)}
+
+  /* ---------- title slide ---------- */
+  .title-slide .slide-inner{gap:clamp(16px,2.4vh,26px); align-items:flex-start}
+
+  .brandmark{
+    display:inline-flex; align-items:center; gap:12px;
+    font-weight:800; letter-spacing:.06em; font-size:13px;
+  }
+  .brandmark .dot{
+    width:40px; height:40px; border-radius:12px;
+    display:grid; place-items:center; font-size:12px; font-weight:850;
+    background:var(--accent); color:var(--blue);
+  }
+
+  h1{
+    font-size:clamp(30px,5.4vw,68px); font-weight:900;
+    letter-spacing:-.04em; line-height:1.03; max-width:20ch;
+  }
+
+  .chips{display:flex; flex-wrap:wrap; gap:10px; margin-top:6px}
+  .chip{
+    font-size:clamp(11.5px,1.05vw,13px); font-weight:700;
+    padding:8px 14px; border-radius:99px;
+    background:var(--chip-bg);
+    border:1px solid var(--chip-border);
+    color:var(--fg);
+  }
+  .chip.hi{
+    background:var(--accent); border-color:var(--accent); color:var(--blue);
+  }
+
+  .byline{
+    font-size:clamp(13px,1.3vw,16px);
+    color:var(--muted); line-height:1.5; max-width:56ch;
+  }
+
+  .confidential{
+    font-size:11.5px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); font-weight:800;
+  }
+
+  /* ---------- fixed UI ---------- */
+  .controls{
+    position:fixed; right:clamp(14px,3vw,34px); bottom:clamp(14px,3vh,26px);
+    z-index:60; display:flex; align-items:center; gap:10px;
+  }
+  .controls button{
+    width:42px; height:42px; border-radius:13px; cursor:pointer;
+    font-size:20px; line-height:1;
+    display:grid; place-items:center;
+    border:1px solid transparent;
+    transition:background .2s, border-color .2s, transform .15s, color .2s;
+  }
+  .controls button:hover{border-color:var(--accent); color:var(--accent)}
+  .controls button:active{transform:scale(.94)}
+
+  #counter{
+    font-size:12.5px; font-weight:850; letter-spacing:.1em;
+    font-variant-numeric:tabular-nums; min-width:70px; text-align:center;
+  }
+
+  .dots{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:clamp(18px,3.4vh,30px); z-index:60;
+    display:flex; gap:7px; align-items:center;
+  }
+  .dots .dot{
+    width:8px; height:8px; border-radius:99px; padding:0; cursor:pointer;
+    border:none;
+    transition:all .3s cubic-bezier(.2,.7,.3,1);
+  }
+  .dots .dot.on{
+    width:28px;
+    background:var(--accent) !important;
+    box-shadow:0 0 14px rgba(250,184,5,.7);
+  }
+
+  .hint{
+    position:fixed; left:clamp(14px,3vw,34px); bottom:clamp(18px,3.4vh,30px);
+    z-index:60; font-size:11.5px; letter-spacing:.05em;
+    opacity:.75; pointer-events:none;
+  }
+  .hint kbd{
+    font-family:inherit; font-size:11px; padding:2px 6px; border-radius:6px;
+    border:1px solid currentColor; color:inherit;
+  }
+
+  /* ---- fixed UI recolours with the active slide ---- */
+  body[data-theme="dark"] .controls button{
+    background:rgba(255,255,255,.10); border-color:rgba(255,255,255,.26); color:#fff;
+  }
+  body[data-theme="dark"] #counter{color:rgba(255,255,255,.80)}
+  body[data-theme="dark"] .dots .dot{background:rgba(255,255,255,.32)}
+  body[data-theme="dark"] .hint{color:rgba(255,255,255,.62)}
+
+  body[data-theme="light"] .controls button{
+    background:rgba(21,2,205,.06); border-color:rgba(21,2,205,.20); color:var(--blue);
+  }
+  body[data-theme="light"] #counter{color:rgba(21,2,205,.78)}
+  body[data-theme="light"] .dots .dot{background:rgba(21,2,205,.26)}
+  body[data-theme="light"] .hint{color:rgba(21,2,205,.62)}
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 960px){
+    .g-4{grid-template-columns:repeat(2,1fr)}
+    .g-3{grid-template-columns:1fr}
+    .g-2{grid-template-columns:1fr}
+    .range-row{grid-template-columns:1fr; gap:8px}
+    .range-val{text-align:left}
+    .range-axis{display:none}
+    .row{grid-template-columns:1fr}
+    .row .rval{text-align:left}
+    .tier{flex-wrap:wrap}
+    .tier .price{order:3}
+    .dots,.hint{display:none}
+    h1{max-width:100%}
+    .qa .a{padding-left:0}
+  }
+  @media (max-width: 640px){
+    .g-2,.g-4{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="progress"><span id="progress"></span></div>
+
+<main class="deck" id="deck">
+
+  <!-- ============ 1 · TITLE ============ -->
+  <section class="slide dark title-slide active">
+    <div class="slide-inner">
+      <div class="brandmark anim" style="--d:.05s">
+        <span class="dot">CR·HT</span>
+        <span>AITSC · Internal AI Program</span>
+      </div>
+
+      <p class="kicker anim" style="--d:.12s">CrescentRating &amp; HalalTrip</p>
+
+      <h1 class="anim" style="--d:.2s">
+        Internal <span class="accent">AI Capability</span>
+      </h1>
+
+      <p class="subtitle anim" style="--d:.3s">
+        Estimating Token Usage &amp; Comparing LLM Delivery Options
+      </p>
+
+      <p class="byline anim" style="--d:.42s">
+        Prepared for senior management, department heads &amp; non-technical stakeholders
+      </p>
+
+      <p class="confidential anim" style="--d:.55s">
+        Internal &amp; Confidential · September 2026 · v1.0
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 2 · EXECUTIVE SUMMARY ============ -->
+  <section class="slide light">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">01 · Executive Summary</span>
+        <h2 class="title">The Situation, at a Glance</h2>
+      </header>
+
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.1s">
+          <span class="tag">Current state</span>
+          <p>~30 employees use AI across departments, including <b>6 developers using Claude Code daily</b>. Current expenditure is <b>~$1,095.80/month</b>, comprising fixed SaaS subscriptions and unmonitored API usage.</p>
+        </div>
+
+        <div class="card anim" style="--d:.17s">
+          <span class="tag">Key challenges</span>
+          <p>No unified view of true AI cost. At <b>190M–380M tokens/month</b>, unmonitored usage spikes, and heavy “vibe coding” by developers competes with everyday chat and copywriting needs.</p>
+        </div>
+
+        <div class="card anim" style="--d:.24s">
+          <span class="tag">Max privacy</span>
+          <p><b>Primary strategy.</b> A hybrid dual-tier model. Self-host Qwen3.8-27B on bare-metal as the daily workhorse, keeping a strictly monitored frontier API (Claude/Qwen) as an escalation layer for complex engineering.</p>
+        </div>
+
+        <div class="card anim" style="--d:.31s">
+          <span class="tag">Max ROI</span>
+          <p><b>Alternative strategy.</b> If data sovereignty requirements are relaxed, an API-Native path routes all traffic through highly discounted third-party endpoints (DeepSeek/OpenRouter), dropping monthly AI infrastructure spend <b>under $100</b>.</p>
+        </div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.38s">
+          <span class="tag">Expected benefits</span>
+          <p>The primary strategy yields over <b>$860/month in gross infrastructure savings</b>, zero marginal cost per query for daily tasks, and full data sovereignty for proprietary IP. The alternative strategy maximizes financial ROI but sacrifices IP security.</p>
+        </div>
+
+        <div class="card hl anim" style="--d:.46s">
+          <span class="tag">Final recommendation</span>
+          <p>Deploy a <b>Hetzner GEX45 running Qwen3.8-27B</b> to secure our codebase, configure a metered Claude/Qwen escalation gateway, and cancel all redundant flat-rate SaaS seats across the organization.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 · THE CENTRAL QUESTION ============ -->
+  <section class="slide dark">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">02 · The Central Question</span>
+      </header>
+
+      <p class="quote anim" style="--d:.1s">
+        “Should we self-host, or keep paying for commercial AI APIs?”
+      </p>
+
+      <p class="subtitle anim" style="--d:.18s">
+        <b>Answer:</b> No single option wins outright — the right answer depends entirely on our data privacy appetite.
+      </p>
+
+      <div class="grid g-3">
+        <div class="card anim" style="--d:.26s">
+          <h3>Commercial APIs are fastest</h3>
+          <p>Instant access to frontier models, but data leaves our perimeter and costs scale exponentially with heavy “vibe coding” volume.</p>
+        </div>
+
+        <div class="card anim" style="--d:.34s">
+          <h3>Self-hosting protects our data</h3>
+          <p>Proprietary code and HalalTrip travel data never leave company hardware — critical for the dev team's daily workflows.</p>
+        </div>
+
+        <div class="card anim" style="--d:.42s">
+          <h3>Frontier reasoning still matters</h3>
+          <p>Complex, multi-file engineering refactoring sometimes requires a higher reasoning ceiling than a local 27B model can deliver.</p>
+        </div>
+      </div>
+
+      <div class="row hl anim" style="--d:.52s; flex-direction: column;">
+        <div class="rval" style="font-size:clamp(13px,1.25vw,16px); text-align:left; max-width:56ch">
+          Two distinct paths forward — the Primary Hybrid model (zero-trust privacy) and the Alternative API-Native model (maximum cost reduction).
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4 · THE STATUS QUO ============ -->
+  <section class="slide light">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">03 · Current State</span>
+        <h2 class="title">The Status Quo: Commercial APIs &amp; Subscriptions</h2>
+      </header>
+
+      <div class="grid g-4">
+        <div class="card stat anim" style="--d:.1s">
+          <div class="num">$20<small>.00</small></div>
+          <p>ChatGPT Plus</p>
+        </div>
+        <div class="card stat anim" style="--d:.16s">
+          <div class="num">$150<small>.00</small></div>
+          <p>Claude Team</p>
+        </div>
+        <div class="card stat anim" style="--d:.22s">
+          <div class="num">$22<small>.80</small></div>
+          <p>Google One AI Pro</p>
+        </div>
+        <div class="card stat anim" style="--d:.28s">
+          <div class="num">~$903</div>
+          <p>Claude API</p>
+        </div>
+      </div>
+
+      <div class="row hl anim" style="--d:.36s">
+        <div class="rlabel">Total — four line items, scaling with usage<small>No volume ceiling.</small></div>
+        <div class="rval">~$1,095.80 / mo</div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.44s">
+          <span class="tag">Strengths</span>
+          <p>No migration cost or setup time · Instant access to frontier-grade models.</p>
+        </div>
+        <div class="card anim" style="--d:.5s">
+          <span class="tag">Weaknesses</span>
+          <p>Costs scale directly with vibe-coding volume · No ceiling on a heavy usage day · Proprietary code &amp; travel data leave company hardware boundaries.</p>
+        </div>
+      </div>
+
+      <p class="subtitle anim" style="--d:.58s">
+        <b>Verdict:</b> Familiar and easy, but the least private and most exposed to ongoing cost spikes as token volume scales.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 5 · HARDWARE ALTERNATIVES ============ -->
+  <section class="slide dark">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">04 · The Spectrum</span>
+        <h2 class="title">Evaluating the Hardware Alternatives</h2>
+        <p class="subtitle" style="font-size:clamp(14px,1.4vw,17px)">
+          Why the alternative infrastructure setups don't fit our exact needs.
+        </p>
+      </header>
+
+      <p class="subtitle anim" style="--d:.1s">
+        Before arriving at our recommendation, we evaluated the full spectrum of delivery models:
+      </p>
+
+      <div class="grid g-3">
+        <div class="card anim" style="--d:.18s">
+          <span class="tag">P2P</span>
+          <h3>Decentralized P2P Hardware</h3>
+          <p>Vast.ai RTX 4090s. Highly cost-effective for 24GB or 96GB setups, but relying on marketplace consumer GPUs introduces enterprise reliability and strict compliance concerns.</p>
+        </div>
+
+        <div class="card anim" style="--d:.26s">
+          <span class="tag">Serverless</span>
+          <h3>Serverless Cloud GPUs</h3>
+          <p>GCP Cloud Run L4. Scales to zero to save money (~$170–$565/mo), but introduces 30–90 second cold-start delays and queue-bound concurrency bottlenecks for the dev team.</p>
+        </div>
+
+        <div class="card anim" style="--d:.34s">
+          <span class="tag">Bare metal</span>
+          <h3>Extreme Bare-Metal</h3>
+          <p>Hetzner GEX131 — 96GB. Offers maximum local capability to run frontier 70B models, but at ~$1,315/month it is massive financial overkill for a 30-person team.</p>
+        </div>
+      </div>
+
+      <p class="subtitle anim" style="--d:.44s">
+        <b>Verdict:</b> Each of these hardware alternatives forces an unacceptable compromise on enterprise reliability, daily workflow concurrency, or budget.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 6 · PRIMARY STRATEGY ============ -->
+  <section class="slide light">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">05 · Recommended (Max Privacy)</span>
+        <h2 class="title">The Primary Strategy: Hybrid Dual-Tier Architecture</h2>
+      </header>
+
+      <div style="display:flex; flex-direction:column; gap:clamp(10px,1.5vh,16px)">
+        <div class="tier anim" style="--d:.12s">
+          <div class="n">1</div>
+          <div class="t-body">
+            <h3>Primary Workhorse</h3>
+            <p>Hetzner GEX45 running <b>Qwen3.8-27B</b> for all 30 employees.</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.2s">
+          <div class="n">2</div>
+          <div class="t-body">
+            <h3>Escalation Layer</h3>
+            <p>Metered <b>Claude / Qwen API</b> for ultra-complex engineering.</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.28s">
+          <div class="n">3</div>
+          <div class="t-body">
+            <h3>SaaS Sunset</h3>
+            <p>Complete cancellation of existing <b>ChatGPT, Claude and Google seats</b>.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="subtitle anim" style="--d:.36s">
+        Maximizing privacy and cost-efficiency while retaining access to frontier intelligence.
+      </p>
+
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.44s">
+          <span class="tag">Strengths</span>
+          <p>Delivers zero-trust data privacy for daily operations · Drops infrastructure costs to <b>~$235/month</b> · Unthrottles developer IDEs.</p>
+        </div>
+        <div class="card anim" style="--d:.5s">
+          <span class="tag">Weaknesses</span>
+          <p>Requires initial setup of vLLM and Open WebUI · Needs strict monitoring discipline on the escalation gateway to prevent cost leakage.</p>
+        </div>
+      </div>
+
+      <p class="subtitle anim" style="--d:.58s">
+        <b>Verdict:</b> The right-sized sweet spot. Best balance of cost, absolute data privacy, and engineering capability.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 7 · ALTERNATIVE STRATEGY ============ -->
+  <section class="slide dark">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">06 · Alternative (Max ROI)</span>
+        <h2 class="title">The Alternative Strategy: API-Native Workhorse</h2>
+      </header>
+
+      <div style="display:flex; flex-direction:column; gap:clamp(10px,1.5vh,16px)">
+        <div class="tier anim" style="--d:.12s">
+          <div class="n">1</div>
+          <div class="t-body">
+            <h3>Primary Workhorse</h3>
+            <p><b>DeepSeek V4.1 Flash</b> (Official API) or <b>Qwen3.8-27B</b> (OpenRouter).</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.2s">
+          <div class="n">2</div>
+          <div class="t-body">
+            <h3>Escalation Layer</h3>
+            <p>Metered <b>Claude Opus 5 API</b> for ultra-complex engineering.</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.28s">
+          <div class="n">3</div>
+          <div class="t-body">
+            <h3>SaaS Sunset</h3>
+            <p>Complete cancellation of existing <b>ChatGPT, Claude and Google seats</b>.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="subtitle anim" style="--d:.36s">
+        If data sovereignty is not a business constraint, route all traffic through highly discounted APIs.
+      </p>
+
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.44s">
+          <span class="tag">Strengths</span>
+          <p>Mathematically the cheapest operational model, dropping baseline AI spend to an estimated <b>$50–$90/month</b>. Eliminates upfront hardware setup fees and server maintenance entirely.</p>
+        </div>
+        <div class="card anim" style="--d:.5s">
+          <span class="tag">Weaknesses</span>
+          <p>Surrenders all data sovereignty. Proprietary algorithms, vulnerability logs and Halal travel research fed into developer IDEs during “vibe coding” will leave the organizational perimeter.</p>
+        </div>
+      </div>
+
+      <p class="subtitle anim" style="--d:.58s">
+        <b>Verdict:</b> Maximizes raw financial ROI but sacrifices IP security. Only viable if the business accepts the risk of third-party data transmission.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 8 · DECISION MATRIX ============ -->
+  <section class="slide light">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">07 · Decision Matrix</span>
+        <h2 class="title">Decision Matrix</h2>
+        <p class="subtitle" style="font-size:clamp(14px,1.4vw,17px)">
+          Scoring the primary deployment paths (1 = poor, 10 = excellent)
+        </p>
+      </header>
+
+      <div class="table-wrap anim" style="--d:.14s">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Deployment Path</th>
+                <th class="ta-r">Cost Efficiency</th>
+                <th class="ta-r">Data Privacy</th>
+                <th class="ta-r">Capability</th>
+                <th class="ta-r">Ops Maintenance</th>
+                <th class="ta-r">Ease of Use</th>
+                <th class="ta-r">Overall</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Status Quo <span class="no">(SaaS + API)</span></td>
+                <td class="ta-r">4</td>
+                <td class="ta-r">3</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">6.8</td>
+              </tr>
+              <tr>
+                <td>API-Native <span class="no">(Max ROI)</span></td>
+                <td class="ta-r">10</td>
+                <td class="ta-r">1</td>
+                <td class="ta-r">8</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">7.4</td>
+              </tr>
+              <tr class="hl">
+                <td>Hybrid Dual-Tier <span class="no">(Recommended)</span></td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">9</td>
+                <td class="ta-r">7</td>
+                <td class="ta-r">8</td>
+                <td class="ta-r">8.4</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid g-3">
+        <div class="card anim" style="--d:.26s">
+          <h3>Cost</h3>
+          <p>Status Quo scales unpredictably; API-Native is strictly the cheapest; Hybrid slashes fixed costs while capping variable spend.</p>
+        </div>
+        <div class="card anim" style="--d:.34s">
+          <h3>Privacy</h3>
+          <p>Hybrid guarantees zero-trust data sovereignty for daily workflows; the others send proprietary IP to third parties.</p>
+        </div>
+        <div class="card anim" style="--d:.42s">
+          <h3>Maintenance</h3>
+          <p>Hybrid requires managing a single Hetzner server; the others require zero hardware maintenance.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 9 · MODEL RANKING HIGHLIGHTS ============ -->
+  <section class="slide dark">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">08 · Ranking</span>
+        <h2 class="title">Model Ranking Highlights</h2>
+        <p class="subtitle" style="font-size:clamp(14px,1.4vw,17px)">
+          Top-ranked models by capability-per-dollar (SWE-Bench Pro/Verified + Open-Weight bonus)
+        </p>
+      </header>
+
+      <div class="table-wrap anim" style="--d:.14s">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th class="ta-r">SWE-bench Pro</th>
+                <th class="ta-r">Open Weight</th>
+                <th class="ta-r">Best Price/mo</th>
+                <th class="ta-r">Rank Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="hl">
+                <td>DeepSeek V4.1 Flash</td>
+                <td class="ta-r">52.60%</td>
+                <td class="ta-r"><span class="yes">Yes</span></td>
+                <td class="ta-r">$88.00</td>
+                <td class="ta-r">81.56</td>
+              </tr>
+              <tr class="hl">
+                <td>Qwen3.8-27B (Q4_K_M)</td>
+                <td class="ta-r">61.70%</td>
+                <td class="ta-r"><span class="yes">Yes</span></td>
+                <td class="ta-r">$50.00</td>
+                <td class="ta-r">49.24</td>
+              </tr>
+              <tr>
+                <td>Kimi K3</td>
+                <td class="ta-r">63.20%</td>
+                <td class="ta-r"><span class="yes">Yes</span></td>
+                <td class="ta-r">$494.00</td>
+                <td class="ta-r">47.95</td>
+              </tr>
+              <tr>
+                <td>Claude Opus 5</td>
+                <td class="ta-r">79.20%</td>
+                <td class="ta-r"><span class="no">No</span></td>
+                <td class="ta-r">$1,492.50</td>
+                <td class="ta-r">47.52</td>
+              </tr>
+              <tr>
+                <td>GLM-5</td>
+                <td class="ta-r">62.10%</td>
+                <td class="ta-r"><span class="yes">Yes</span></td>
+                <td class="ta-r">$290.40</td>
+                <td class="ta-r">47.28</td>
+              </tr>
+              <tr>
+                <td>Claude 5 Sonnet</td>
+                <td class="ta-r">63.20%</td>
+                <td class="ta-r"><span class="no">No</span></td>
+                <td class="ta-r">$597.00</td>
+                <td class="ta-r">37.92</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card anim" style="--d:.28s">
+        <h3>Reading the table</h3>
+        <p>The <b>Alternative API-Native</b> strategy utilizes the top two mathematical scorers (DeepSeek / Qwen via OpenRouter). The <b>Primary Hybrid</b> strategy utilizes Qwen3.8-27B but hosts it locally to secure the open-weight privacy bonus.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10 · MIGRATION ROADMAP ============ -->
+  <section class="slide light">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">09 · Roadmap</span>
+        <h2 class="title">Migration Roadmap <span class="accent">(Primary Hybrid Path)</span></h2>
+      </header>
+
+      <div style="display:flex; flex-direction:column; gap:clamp(10px,1.5vh,16px)">
+        <div class="tier anim" style="--d:.12s">
+          <div class="n">1</div>
+          <div class="t-body">
+            <h3>Infrastructure Setup</h3>
+            <p>Provision <b>Hetzner GEX45</b> node, install vLLM engine, and load quantized Qwen3.8-27B with a dedicated KV-cache buffer.</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.2s">
+          <div class="n">2</div>
+          <div class="t-body">
+            <h3>Application &amp; Gateway</h3>
+            <p>Deploy <b>Open WebUI</b> for staff, implement RBAC, and secure the commercial API keys inside a monitored internal gateway.</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.28s">
+          <div class="n">3</div>
+          <div class="t-body">
+            <h3>Developer Integration</h3>
+            <p>Reconfigure IDEs (<b>Claude Code</b>) to point to the local Hetzner endpoint, optimizing prefix caching for massive codebase ingestion.</p>
+          </div>
+        </div>
+
+        <div class="tier anim" style="--d:.36s">
+          <div class="n">4</div>
+          <div class="t-body">
+            <h3>Onboarding &amp; Sunset</h3>
+            <p>Train all 30 employees on the new internal platform and immediately cancel the <b>~$192.80/month</b> in redundant SaaS subscriptions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11 · COST, EFFORT & RISK ============ -->
+  <section class="slide dark">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">10 · Comparison</span>
+        <h2 class="title">Cost, Effort &amp; Risk Comparison</h2>
+        <p class="subtitle" style="font-size:clamp(14px,1.4vw,17px)">
+          Comparing the deployment paths (higher bar = worse; 1–10)
+        </p>
+      </header>
+
+      <div class="chart-wrap anim" style="--d:.14s">
+        <div class="chart">
+          <div class="chart-group">
+            <div class="bar cost"   style="--v:8"><span>8</span></div>
+            <div class="bar effort" style="--v:2"><span>2</span></div>
+            <div class="bar risk"   style="--v:8"><span>8</span></div>
+          </div>
+          <div class="chart-group">
+            <div class="bar cost"   style="--v:1"><span>1</span></div>
+            <div class="bar effort" style="--v:2"><span>2</span></div>
+            <div class="bar risk"   style="--v:9"><span>9</span></div>
+          </div>
+          <div class="chart-group">
+            <div class="bar cost"   style="--v:3"><span>3</span></div>
+            <div class="bar effort" style="--v:7"><span>7</span></div>
+            <div class="bar risk"   style="--v:2"><span>2</span></div>
+          </div>
+        </div>
+
+        <div class="chart-labels">
+          <span>Status Quo</span>
+          <span>API-Native</span>
+          <span>Hybrid Dual-Tier</span>
+        </div>
+
+        <div class="legend">
+          <span><i class="c"></i>Cost</span>
+          <span><i class="e"></i>Effort</span>
+          <span><i class="r"></i>Risk</span>
+        </div>
+      </div>
+
+      <ul class="check">
+        <li class="anim" style="--d:.3s"><span class="ico">•</span><span><b>Status Quo</b> looks easy today, but financial and IP-leakage risks compound as usage grows.</span></li>
+        <li class="anim" style="--d:.38s"><span class="ico">•</span><span><b>API-Native</b> minimizes operational cost and effort, but maximizes IP-leakage risk for our codebase.</span></li>
+        <li class="anim" style="--d:.46s"><span class="ico">•</span><span><b>Hybrid Dual-Tier</b> offers the lowest total cost of ownership that actively protects our proprietary data.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 12 · RISKS TO WATCH ============ -->
+  <section class="slide light">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">11 · Caution</span>
+        <h2 class="title">A Word of Caution: Risks to Watch</h2>
+      </header>
+
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.12s">
+          <span class="tag">01 · Escalation creep</span>
+          <p>Without gateway monitoring, the “occasional” frontier API becomes a routine crutch, erasing our cost savings.</p>
+        </div>
+
+        <div class="card anim" style="--d:.2s">
+          <span class="tag">02 · Single point of failure</span>
+          <p>Under the Hybrid model, one self-hosted GPU node (Hetzner GEX45) with no automatic failover means a server outage halts internal AI tools.</p>
+        </div>
+
+        <div class="card anim" style="--d:.28s">
+          <span class="tag">03 · Data leakage</span>
+          <p>If employees bypass the internal platform and manually paste code into public commercial bots, our sovereignty guarantees disappear.</p>
+        </div>
+
+        <div class="card anim" style="--d:.36s">
+          <span class="tag">04 · Context starvation</span>
+          <p>If vLLM prefix caching is misconfigured on the Hetzner node, heavy developer codebase ingestion could freeze generation speeds for marketing/admin staff.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13 · FIVE QUESTIONS ============ -->
+  <section class="slide dark">
+    <div class="slide-inner">
+      <header class="s-head anim" style="--d:.02s">
+        <span class="kicker">12 · Final Recommendation</span>
+        <h2 class="title">Five Questions, Five Clear Answers</h2>
+      </header>
+
+      <div class="qa-list">
+        <div class="qa anim" style="--d:.12s">
+          <div class="q"><span class="n">1</span><span>Should we keep commercial subscriptions for non-technical staff?</span></div>
+          <div class="a">Absolutely not. Cancel all fixed-seat SaaS subscriptions to realize <b>immediate cost savings</b>.</div>
+        </div>
+
+        <div class="qa anim" style="--d:.2s">
+          <div class="q"><span class="n">2</span><span>Which strategy wins?</span></div>
+          <div class="a">The <b>Hybrid Dual-Tier model</b>. It provides maximum privacy and unmetered volume for daily work without sacrificing frontier capability.</div>
+        </div>
+
+        <div class="qa anim" style="--d:.28s">
+          <div class="q"><span class="n">3</span><span>When would we choose the Alternative API-Native path?</span></div>
+          <div class="a">Only if executive leadership explicitly approves sending proprietary codebase IP to third-party endpoints to chase an extra <b>~$140/month</b> in savings.</div>
+        </div>
+
+        <div class="qa anim" style="--d:.36s">
+          <div class="q"><span class="n">4</span><span>What should never touch third-party APIs under the Hybrid model?</span></div>
+          <div class="a">Proprietary source code, <b>HalalTrip user telemetry</b>, and internal research data during “vibe coding”.</div>
+        </div>
+
+        <div class="qa anim" style="--d:.44s">
+          <div class="q"><span class="n">5</span><span>The immediate next step?</span></div>
+          <div class="a">Provision the <b>Hetzner GEX45 workhorse</b> and begin Phase 1 deployment.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 14 · CLOSING ============ -->
+  <section class="slide light">
+    <div class="slide-inner" style="align-items:center; text-align:center">
+      <span class="kicker anim" style="--d:.05s">Closing</span>
+
+      <h1 class="anim" style="--d:.14s; max-width:24ch; margin:0 auto">
+        The right AI infrastructure for <span class="accent">every workload</span>.
+      </h1>
+
+      <p class="subtitle anim" style="--d:.26s; margin:0 auto">
+        Secure the daily work. Escalate only when it counts.
+      </p>
+
+      <p class="byline anim" style="--d:.38s; margin:0 auto">
+        Discussion &amp; next steps
+      </p>
+
+      <p class="confidential anim" style="--d:.5s">
+        Internal &amp; Confidential — AI Capability Strategy · September 2026
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<div class="hint">
+  <kbd>←</kbd> <kbd>→</kbd> navigate · <kbd>F</kbd> fullscreen
+</div>
+
+<div class="dots" id="dots" aria-label="Slide navigation"></div>
+
+<footer class="controls">
+  <button id="prev" aria-label="Previous slide">‹</button>
+  <span id="counter">01 / 14</span>
+  <button id="next" aria-label="Next slide">›</button>
+</footer>
+
+<script>
+(function () {
+  const slides   = Array.from(document.querySelectorAll('.slide'));
+  const dotsWrap = document.getElementById('dots');
+  const progress = document.getElementById('progress');
+  const counter  = document.getElementById('counter');
+  const total    = slides.length;
+  let index = 0;
+
+  /* build dots */
+  slides.forEach((_, n) => {
+    const b = document.createElement('button');
+    b.className = 'dot';
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Go to slide ' + (n + 1));
+    b.addEventListener('click', () => go(n));
+    dotsWrap.appendChild(b);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  const pad = n => String(n).padStart(2, '0');
+
+  function go(n) {
+    index = Math.max(0, Math.min(total - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === index));
+    dots.forEach((d, k) => d.classList.toggle('on', k === index));
+
+    /* swap fixed-UI colours to match the active slide theme */
+    const isDark = slides[index].classList.contains('dark');
+    document.body.dataset.theme = isDark ? 'dark' : 'light';
+
+    progress.style.width = ((index + 1) / total * 100) + '%';
+    counter.textContent = pad(index + 1) + ' / ' + pad(total);
+    slides[index].scrollTop = 0;
+  }
+
+  const next = () => go(index + 1);
+  const prev = () => go(index - 1);
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+
+  /* keyboard */
+  window.addEventListener('keydown', e => {
+    const k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === ' ' || k === 'Enter') {
+      e.preventDefault(); next();
+    } else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') {
+      e.preventDefault(); prev();
+    } else if (k === 'Home') {
+      e.preventDefault(); go(0);
+    } else if (k === 'End') {
+      e.preventDefault(); go(total - 1);
+    } else if (k.toLowerCase() === 'f') {
+      toggleFullscreen();
+    }
+  });
+
+  /* fullscreen */
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      (document.documentElement.requestFullscreen ||
+       document.documentElement.webkitRequestFullscreen || function(){}).call(document.documentElement);
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+    }
+  }
+
+  /* touch swipe */
+  let startX = 0, startY = 0, tracking = false;
+  window.addEventListener('touchstart', e => {
+    const t = e.changedTouches[0];
+    startX = t.clientX; startY = t.clientY; tracking = true;
+  }, { passive: true });
+
+  window.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) {
+      dx < 0 ? next() : prev();
+    }
+  }, { passive: true });
+
+  go(0);
+})();
+</script>
+</body>
+</html>
