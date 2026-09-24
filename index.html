@@ -1021,63 +1021,90 @@
             <thead>
               <tr>
                 <th>Model</th>
+                <th>Provider</th>
                 <th class="ta-r">SWE-bench Pro</th>
+                <th class="ta-r">SWE-bench Ver.</th>
                 <th class="ta-r">Open Weight</th>
                 <th class="ta-r">Best Price/mo</th>
                 <th class="ta-r">Rank Score</th>
               </tr>
             </thead>
             <tbody>
-              <tr class="hl">
-                <td>DeepSeek V4.1 Flash</td>
-                <td class="ta-r">52.60%</td>
+              <tr>
+                <td>gpt-oss-120b (native MXFP4)</td>
+                <td>OpenRouter</td>
+                <td class="ta-r">—</td>
+                <td class="ta-r">62.40%</td>
                 <td class="ta-r"><span class="yes">Yes</span></td>
-                <td class="ta-r">$88.00</td>
-                <td class="ta-r">81.56</td>
+                <td class="ta-r">$9.00</td>
+                <td class="ta-r">79.97</td>
               </tr>
-              <tr class="hl">
+              <tr>
                 <td>Qwen3.8-27B (Q4_K_M)</td>
+                <td>OpenRouter</td>
                 <td class="ta-r">61.70%</td>
+                <td class="ta-r">78.80%</td>
                 <td class="ta-r"><span class="yes">Yes</span></td>
                 <td class="ta-r">$50.00</td>
-                <td class="ta-r">49.24</td>
+                <td class="ta-r">67.03</td>
               </tr>
-              <tr>
-                <td>Kimi K3</td>
-                <td class="ta-r">63.20%</td>
+              <tr class="hl">
+                <td>DeepSeek V4.1 Flash <span class="no" style="font-size:11px; font-weight:700">(Workhorse)</span></td>
+                <td>Official API</td>
+                <td class="ta-r">52.60%</td>
+                <td class="ta-r">79.00%</td>
                 <td class="ta-r"><span class="yes">Yes</span></td>
-                <td class="ta-r">$494.00</td>
-                <td class="ta-r">47.95</td>
+                <td class="ta-r">$88.00</td>
+                <td class="ta-r">57.48</td>
               </tr>
               <tr>
-                <td>Claude Opus 5</td>
-                <td class="ta-r">79.20%</td>
-                <td class="ta-r"><span class="no">No</span></td>
-                <td class="ta-r">$1,492.50</td>
-                <td class="ta-r">47.52</td>
-              </tr>
-              <tr>
-                <td>GLM-5</td>
-                <td class="ta-r">62.10%</td>
+                <td>Qwen3.8-27B</td>
+                <td>Official API</td>
+                <td class="ta-r">61.70%</td>
+                <td class="ta-r">78.80%</td>
                 <td class="ta-r"><span class="yes">Yes</span></td>
-                <td class="ta-r">$290.40</td>
-                <td class="ta-r">47.28</td>
-              </tr>
-              <tr>
-                <td>Claude 5 Sonnet</td>
-                <td class="ta-r">63.20%</td>
-                <td class="ta-r"><span class="no">No</span></td>
-                <td class="ta-r">$597.00</td>
-                <td class="ta-r">37.92</td>
+                <td class="ta-r">$151.50</td>
+                <td class="ta-r">55.52</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <div class="card anim" style="--d:.28s">
-        <h3>Reading the table</h3>
-        <p>The <b>Alternative API-Native</b> strategy utilizes the top two mathematical scorers (DeepSeek / Qwen via OpenRouter). The <b>Primary Hybrid</b> strategy utilizes Qwen3.8-27B but hosts it locally to secure the open-weight privacy bonus.</p>
+      <div class="grid g-2">
+        <div class="card anim" style="--d:.28s">
+          <span class="tag">Latency &amp; Speed Advantage</span>
+          <h3>Why Official API Over OpenRouter (DeepSeek Workhorse)</h3>
+          <p>
+            Although OpenRouter aggregators top the raw math score table due to rock-bottom quantization pricing ($9–$50/mo), <b>DeepSeek V4.1 Flash via Official API ($88/mo) is our highlighted workhorse</b>:
+          </p>
+          <p style="margin-top:8px">
+            <b>Sub-Second TTFT &amp; Direct Networking:</b> Connects directly to dedicated provider inference clusters, bypassing OpenRouter multi-tenant proxy hops, load-balancing queue delays, and provider cold starts.
+          </p>
+          <p style="margin-top:6px">
+            <b>Sustained Generation Throughput:</b> Runs uncompressed/optimized FP8 execution delivering continuous ~60–100+ tokens/sec, avoiding throttled or congested third-party community nodes.
+          </p>
+          <p style="margin-top:6px">
+            <b>Critical for Developer Flow:</b> IDE vibe coding (Claude Code / Cursor) requires rapid multi-turn turnaround. Slow latency breaks flow; direct API ensures stable concurrency and guaranteed SLA uptime.
+          </p>
+        </div>
+
+        <div class="card anim" style="--d:.34s">
+          <span class="tag">Deployment Strategy</span>
+          <h3>Reading the Table &amp; Strategic Fit</h3>
+          <p>
+            The ranking scores balance SWE-bench performance against price with an open-weight bonus, directly mapping to our strategic options:
+          </p>
+          <p style="margin-top:8px">
+            <b>Alternative API-Native Path:</b> Deploys <b>DeepSeek V4.1 Flash (Official API)</b> as the sole daily workhorse. Combines top-tier engineering capability (79.0% Verified) with production speed at just $88/mo.
+          </p>
+          <p style="margin-top:6px">
+            <b>Primary Hybrid Path:</b> Deploys <b>Qwen3.8-27B</b> self-hosted on bare-metal Hetzner for 100% data sovereignty and zero-latency internal LAN inference.
+          </p>
+          <p style="margin-top:6px">
+            <b>Escalation Anchor:</b> <b>Claude Opus 5 (96.0% Verified)</b> remains the metered escalation ceiling for ultra-complex engineering tasks.
+          </p>
+        </div>
       </div>
     </div>
   </section>
